@@ -23,14 +23,28 @@ pub fn tblreader(input: TokenStream) -> TokenStream {
 
     let parse_push = fields.iter().enumerate().map(|(i, f)| {
         let name = &f.ident;
+        let t = if let syn::Type::Path(syn::TypePath{ref path, ..}) = f.ty {
+            let ps = path.segments.last().unwrap();
+            if ps.ident != "Vec" {
+                unimplemented!();
+            }
+            if let syn::PathArguments::AngleBracketed(ref ar) = ps.arguments {
+                ar.args.first().unwrap()
+            } else {
+                unimplemented!();
+            }
+        } else {
+            unimplemented!();
+        };
+
         quote! {
-            t.#name.push(v[#i].parse::<i32>().unwrap());
+            t.#name.push(v[#i].parse::<#t>().unwrap());
         }
     });
 
     let expended = quote! {
         impl #ident {
-            fn load<P>(p: P) where P: AsRef<std::path::Path> {
+            fn load<P>(p: P) -> Self where P: AsRef<std::path::Path> {
                 let mut t = Self {
                     // e.g.: suppkey: Vec::new(),
                    #(#newvec,)*
@@ -50,6 +64,7 @@ pub fn tblreader(input: TokenStream) -> TokenStream {
                     }
                 }
                 
+                t
             }
         }
     };
