@@ -46,7 +46,7 @@ struct D {
     daynuminmonth: Vec<i32>,
     daynuminyear: Vec<i32>,
     monthnuminweek: Vec<i32>,
-    weeknuminyer: Vec<i32>,
+    weeknuminyear: Vec<i32>,
     sellingseason: Vec<String>,
     lastdayinmonth: Vec<i32>,
     holidayfl: Vec<i32>,
@@ -55,15 +55,15 @@ struct D {
 }
 
 #[derive(Debug)]
-struct Q11Res {
+struct Q1Res {
     revenue: i64,
 }
 
 // for SF = 1, revenue = 445921715901
-fn q11(lo: &LO, d: &D) -> Q11Res {
+fn q11(lo: &LO, d: &D) -> Q1Res {
     use std::collections::HashMap;
     
-    let mut r = Q11Res{revenue: 0};
+    let mut r = Q1Res{revenue: 0};
 
     // build
     let mut ht = HashMap::new();
@@ -87,6 +87,62 @@ fn q11(lo: &LO, d: &D) -> Q11Res {
     r
 }
 
+// for SF = 1, revenue = 97884685311
+fn q12(lo: &LO, d: &D) -> Q1Res {
+    use std::collections::HashMap;
+    
+    let mut r = Q1Res{revenue: 0};
+
+    // build
+    let mut ht = HashMap::new();
+    for (i, d_yearmonthnum) in d.yearmonthnum.iter().enumerate() {
+        if d_yearmonthnum == &199401 {
+            ht.insert(d.datekey[i], true);
+        }
+    }
+
+    // probe
+    for (i, lo_discount) in lo.discount.iter().enumerate() {
+        if lo_discount >= &4 && lo_discount <= &6 && lo.quantity[i] >= 26 && lo.quantity[i] <= 35 {
+            match ht.get(&lo.orderdate[i]) {
+                Some(_) => {
+                    r.revenue += (lo.extendedprice[i] as i64) * (lo.discount[i] as i64);
+                },
+                _ => {},
+            }
+        }
+    }
+    r
+}
+
+// for SF = 1, revenue = 27885895351
+fn q13(lo: &LO, d: &D) -> Q1Res {
+    use std::collections::HashMap;
+    
+    let mut r = Q1Res{revenue: 0};
+
+    // build
+    let mut ht = HashMap::new();
+    for (i, d_weeknuminyear) in d.weeknuminyear.iter().enumerate() {
+        if d_weeknuminyear == &6 && d.year[i] == 1994 {
+            ht.insert(d.datekey[i], true);
+        }
+    }
+
+    // probe
+    for (i, lo_discount) in lo.discount.iter().enumerate() {
+        if lo_discount >= &5 && lo_discount <= &7 && lo.quantity[i] >= 26 && lo.quantity[i] <= 35 {
+            match ht.get(&lo.orderdate[i]) {
+                Some(_) => {
+                    r.revenue += (lo.extendedprice[i] as i64) * (lo.discount[i] as i64);
+                },
+                _ => {},
+            }
+        }
+    }
+    r
+}
+
 fn main() {
     println!("Loading...");
     let start = Instant::now();
@@ -97,6 +153,16 @@ fn main() {
 
     println!("Running...");
     let start = Instant::now();
-    println!("{:?}", q11(&lo, &d));
+    println!("Q11: {:?}", q11(&lo, &d));
     println!("q11 takes {} ms.", start.elapsed().as_millis());
+
+    println!("Running...");
+    let start = Instant::now();
+    println!("Q12: {:?}", q12(&lo, &d));
+    println!("q12 takes {} ms.", start.elapsed().as_millis());
+
+    println!("Running...");
+    let start = Instant::now();
+    println!("Q13: {:?}", q13(&lo, &d));
+    println!("q13 takes {} ms.", start.elapsed().as_millis());
 }
