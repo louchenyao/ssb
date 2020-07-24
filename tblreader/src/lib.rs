@@ -38,7 +38,7 @@ pub fn tblreader(input: TokenStream) -> TokenStream {
         };
 
         quote! {
-            t.#name.push(v[#i].parse::<#t>().unwrap());
+            t.#name.push(it.next().unwrap().parse::<#t>().unwrap());
         }
     });
 
@@ -58,7 +58,7 @@ pub fn tblreader(input: TokenStream) -> TokenStream {
 
                 for line in reader {
                     if let Ok(l) = line {
-                        let v = l.split("|").collect::<Vec<&str>>();
+                        let mut it = l.split("|");
                         // e.g.: self.suppkey.push(v[0].parse::<i32>().unwrap());
                         #(#parse_push;)*
                     }
