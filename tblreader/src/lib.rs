@@ -21,7 +21,7 @@ pub fn tblreader(input: TokenStream) -> TokenStream {
         }
     });
 
-    let parse_push = fields.iter().enumerate().map(|(i, f)| {
+    let parse_push = fields.iter().map(|f| {
         let name = &f.ident;
         let t = if let syn::Type::Path(syn::TypePath{ref path, ..}) = f.ty {
             let ps = path.segments.last().unwrap();
