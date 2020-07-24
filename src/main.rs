@@ -67,6 +67,18 @@ struct P {
     container: Vec<String>,
 }
 
+#[derive(TBLReader)]
+struct C {
+    custkey: Vec<i32>,
+    name: Vec<String>,
+    address: Vec<String>,
+    city: Vec<String>,
+    nation: Vec<String>,
+    region: Vec<String>,
+    phone: Vec<String>,
+    mktsegment: Vec<String>,
+}
+
 #[derive(Debug)]
 struct Q1Res {
     revenue: i64,
@@ -307,6 +319,64 @@ fn q23(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
     r
 }
 
+#[derive(Debug)]
+struct Q31Res {
+    c_nation: Vec<String>,
+    s_nation: Vec<String>,
+    d_year: Vec<i32>,
+    revenue: Vec<i64>,
+}
+
+fn q31(c: &C, lo: &LO, s: &S, d: &D) -> Q31Res {
+    use std::collections::HashMap;
+
+    // build date hash table
+    let mut d_ht = HashMap::new();
+    for (i, d_year) in d.year.iter().enumerate() {
+        if d_year >= &1992 && d_year <= &1997{
+            d_ht.insert(d.datekey[i], d_year);
+        }
+    }
+    // build supplier hash table
+    let mut s_ht = HashMap::new();
+    for (i, s_region) in s.region.iter().enumerate() {
+        if s_region == &"ASIA" {
+            s_ht.insert(s.suppkey[i], &s.nation[i]);
+        }
+    }
+    // build customer hash table
+    let mut c_ht = HashMap::new();
+    for (i, c_region) in c.region.iter().enumerate() {
+        if c_region == &"ASIA" {
+            c_ht.insert(c.custkey[i], &c.nation[i]);
+        }
+    }
+
+    // probe and aggregate
+    let mut res_ht = HashMap::<(&str, &str, i32), i64>::new();
+    for (i, lo_orderdate) in lo.orderdate.iter().enumerate() {
+        if let Some(d_year) = d_ht.get(lo_orderdate) {
+            if let Some(s_nation) = s_ht.get(&lo.suppkey[i]) {
+                if let Some(c_nation) = c_ht.get(&lo.custkey[i]) {
+                    *res_ht.entry((c_nation, s_nation, **d_year)).or_insert(0) += lo.revenue[i] as i64;
+                }
+            }
+        }
+    }
+
+    let mut v: Vec<_> = res_ht.into_iter().collect();
+    let mut r= Q31Res {c_nation: Vec::new(), s_nation: Vec::new(), d_year: Vec::new(), revenue: Vec::new()};
+    //order by d_year asc, revenue desc; 
+    v.sort_by_key(|x| ((x.0).2, -x.1));
+    for ((c_nation, s_nation, d_year), revenue) in v {
+        r.c_nation.push(c_nation.to_string());
+        r.s_nation.push(s_nation.to_string());
+        r.d_year.push(d_year);
+        r.revenue.push(revenue);
+    }
+    r
+}
+
 fn main() {
     println!("Loading...");
     let start = Instant::now();
@@ -314,6 +384,7 @@ fn main() {
     let lo = LO::load("./ssb-dbgen/lineorder.tbl");
     let s = S::load("./ssb-dbgen/supplier.tbl");
     let p = P::load("./ssb-dbgen/part.tbl");
+    let c = C::load("./ssb-dbgen/customer.tbl");
     println!("Takes {} seconds to load.", start.elapsed().as_millis() as f32 / 1000.0);
 
     let start = Instant::now();
@@ -345,4 +416,10 @@ fn main() {
     println!("q23 takes {} ms.", start.elapsed().as_millis());
     println!("q23 row_count: {}", q23_r.d_year.len());
     //println!("Q22 res: {:?}", q22_r);
+
+    let start = Instant::now();
+    let q31_r = q31(&c, &lo, &s, &d);
+    println!("q31 takes {} ms.", start.elapsed().as_millis());
+    println!("q31 row_count: {}", q31_r.d_year.len());
+    println!("Q31 res: {:?}", q31_r);
 }
