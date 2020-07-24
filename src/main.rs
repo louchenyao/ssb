@@ -84,21 +84,36 @@ struct Q1Res {
     revenue: i64,
 }
 
+
+macro_rules! ht {
+    (@pred_expaned $tbl:expr, $idx:expr, $l:ident == $r:expr, and $($rest:tt)*) => {{
+        ht![@pred_expaned $tbl, $idx, $l == $r] && ht![@pred_expaned $tbl, $idx, $($rest)*]
+    }};
+
+    (@pred_expaned $tbl:expr, $idx:expr, $l:ident == $r:expr) => {{
+        $tbl.$l[$idx] == $r
+    }};
+
+    ($tbl:expr; $k:ident => true; $($pred:tt)*) => {
+        {
+            let mut t = std::collections::HashMap::new();
+            for i in 0..$tbl.$k.len() {
+                if ht![@pred_expaned $tbl, i, $($pred)*] {
+                    t.insert($tbl.$k[i], true);
+                }
+            }
+            t
+        }
+    };
+}
+
 // for SF = 1, revenue = 445921715901
 fn q11(lo: &LO, d: &D) -> Q1Res {
-    use std::collections::HashMap;
-    
-    let mut r = Q1Res{revenue: 0};
-
     // build
-    let mut ht = HashMap::new();
-    for (i, d_year) in d.year.iter().enumerate() {
-        if d_year == &1993 {
-            ht.insert(d.datekey[i], true);
-        }
-    }
+    let ht = ht![d; datekey => true; year == 1993];
 
     // probe
+    let mut r = Q1Res{revenue: 0};
     for (i, lo_discount) in lo.discount.iter().enumerate() {
         if lo_discount >= &1 && lo_discount <= &3 && lo.quantity[i] < 25 {
             match ht.get(&lo.orderdate[i]) {
@@ -114,19 +129,11 @@ fn q11(lo: &LO, d: &D) -> Q1Res {
 
 // for SF = 1, revenue = 97884685311
 fn q12(lo: &LO, d: &D) -> Q1Res {
-    use std::collections::HashMap;
-    
-    let mut r = Q1Res{revenue: 0};
-
     // build
-    let mut ht = HashMap::new();
-    for (i, d_yearmonthnum) in d.yearmonthnum.iter().enumerate() {
-        if d_yearmonthnum == &199401 {
-            ht.insert(d.datekey[i], true);
-        }
-    }
+    let ht = ht![d; datekey => true; yearmonthnum == 199401];
 
     // probe
+    let mut r = Q1Res{revenue: 0};
     for (i, lo_discount) in lo.discount.iter().enumerate() {
         if lo_discount >= &4 && lo_discount <= &6 && lo.quantity[i] >= 26 && lo.quantity[i] <= 35 {
             match ht.get(&lo.orderdate[i]) {
@@ -142,19 +149,11 @@ fn q12(lo: &LO, d: &D) -> Q1Res {
 
 // for SF = 1, revenue = 27885895351
 fn q13(lo: &LO, d: &D) -> Q1Res {
-    use std::collections::HashMap;
-    
-    let mut r = Q1Res{revenue: 0};
-
     // build
-    let mut ht = HashMap::new();
-    for (i, d_weeknuminyear) in d.weeknuminyear.iter().enumerate() {
-        if d_weeknuminyear == &6 && d.year[i] == 1994 {
-            ht.insert(d.datekey[i], true);
-        }
-    }
+    let ht = ht![d; datekey => true; weeknuminyear == 6, and year == 1994];
 
     // probe
+    let mut r = Q1Res{revenue: 0};
     for (i, lo_discount) in lo.discount.iter().enumerate() {
         if lo_discount >= &5 && lo_discount <= &7 && lo.quantity[i] >= 26 && lo.quantity[i] <= 35 {
             match ht.get(&lo.orderdate[i]) {
