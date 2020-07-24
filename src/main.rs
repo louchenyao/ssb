@@ -211,6 +211,54 @@ fn q21(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
     r
 }
 
+// for SF = 1, row_count = 56
+fn q22(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
+    use std::collections::HashMap;
+    let mut r = Q2Res{revenue: Vec::new(), d_year: Vec::new(), p_brand1: Vec::new()};
+
+    // build date hash table
+    let mut d_ht = HashMap::new();
+    for (i, d_datekey) in d.datekey.iter().enumerate() {
+        d_ht.insert(d_datekey, d.year[i]);
+    }
+    // build part hash table
+    let mut p_ht = HashMap::new();
+    for (i, p_brand1) in p.brand1.iter().enumerate() {
+        if p_brand1.as_str() >= "MFGR#2221" && p_brand1.as_str() <= "MFGR#2228" {
+            p_ht.insert(p.partkey[i], &p.brand1[i]);
+        }
+    }
+    // build supplier hash table
+    let mut s_ht = HashMap::new();
+    for (i, s_region) in s.region.iter().enumerate() {
+        if s_region == &"ASIA" {
+            s_ht.insert(s.suppkey[i], true);
+        }
+    }
+
+    // probe and aggregate
+    let mut res_ht = HashMap::<(i32, &str), i64>::new();
+    for (i, lo_partkey) in lo.partkey.iter().enumerate() {
+        if let Some(p_brand1) = p_ht.get(lo_partkey) {
+            if let Some(_) = s_ht.get(&lo.suppkey[i]) {
+                if let Some(d_year) = d_ht.get(&lo.orderdate[i]) {
+                    *res_ht.entry((*d_year, *p_brand1)).or_insert(0) += lo.revenue[i] as i64;
+                }
+            }
+        }
+    }
+
+    let mut v: Vec<_> = res_ht.into_iter().collect();
+    v.sort();
+    for ((d_year, p_brand1), revenue) in v {
+        r.revenue.push(revenue);
+        r.d_year.push(d_year);
+        r.p_brand1.push(p_brand1.to_string());
+    }
+
+    r
+}
+
 fn main() {
     println!("Loading...");
     let start = Instant::now();
@@ -241,4 +289,11 @@ fn main() {
     println!("q21 takes {} ms.", start.elapsed().as_millis());
     println!("Q21 row_count: {}", q21_r.d_year.len());
     //println!("Q21 res: {:?}", q21_r);
+
+    println!("Running...");
+    let start = Instant::now();
+    let q22_r = q22(&lo, &d, &p, &s);
+    println!("q22 takes {} ms.", start.elapsed().as_millis());
+    println!("Q22 row_count: {}", q22_r.d_year.len());
+    //println!("Q22 res: {:?}", q22_r);
 }
