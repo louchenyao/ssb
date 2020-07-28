@@ -89,22 +89,48 @@ macro_rules! ht {
     (@pred_expaned $tbl:expr, $idx:expr, $l:ident == $r:expr, and $($rest:tt)*) => {{
         ht![@pred_expaned $tbl, $idx, $l == $r] && ht![@pred_expaned $tbl, $idx, $($rest)*]
     }};
-
+    (@pred_expaned $tbl:expr, $idx:expr, $l:ident >= $r:expr, and $($rest:tt)*) => {{
+        ht![@pred_expaned $tbl, $idx, $l >= $r] && ht![@pred_expaned $tbl, $idx, $($rest)*]
+    }};
+    (@pred_expaned $tbl:expr, $idx:expr, $l:ident <= $r:expr, and $($rest:tt)*) => {{
+        ht![@pred_expaned $tbl, $idx, $l <= $r] && ht![@pred_expaned $tbl, $idx, $($rest)*]
+    }};
     (@pred_expaned $tbl:expr, $idx:expr, $l:ident == $r:expr) => {{
         $tbl.$l[$idx] == $r
     }};
-
-    ($tbl:expr; $k:ident => true; $($pred:tt)*) => {
-        {
-            let mut t = std::collections::HashMap::new();
-            for i in 0..$tbl.$k.len() {
-                if ht![@pred_expaned $tbl, i, $($pred)*] {
-                    t.insert($tbl.$k[i], true);
-                }
-            }
-            t
-        }
+    (@pred_expaned $tbl:expr, $idx:expr, $l:ident >= $r:expr) => {{
+        $tbl.$l[$idx] >= $r
+    }};
+    (@pred_expaned $tbl:expr, $idx:expr, $l:ident <= $r:expr) => {{
+        $tbl.$l[$idx] <= $r
+    }};
+    (@pred_expaned $tbl:expr, $idx:expr,) => {{
+        true
+    }};
+    (@v_expaned $tbl:expr, $idx:expr, true) => {
+        true
     };
+    (@v_expaned $tbl:expr, $idx:expr, $v:ident) => {
+        $tbl.$v[$idx]
+    };
+    ($tbl:expr; $k:ident => &$v:ident; $($pred:tt)*) => {{
+        let mut t = std::collections::HashMap::new();
+        for i in 0..$tbl.$k.len() {
+            if ht![@pred_expaned $tbl, i, $($pred)*] {
+                t.insert($tbl.$k[i], &ht![@v_expaned $tbl, i, $v]);
+            }
+        }
+        t
+    }};
+    ($tbl:expr; $k:ident => $v:ident; $($pred:tt)*) => {{
+        let mut t = std::collections::HashMap::new();
+        for i in 0..$tbl.$k.len() {
+            if ht![@pred_expaned $tbl, i, $($pred)*] {
+                t.insert($tbl.$k[i], ht![@v_expaned $tbl, i, $v]);
+            }
+        }
+        t
+    }};
 }
 
 // for SF = 1, revenue = 445921715901
@@ -179,25 +205,10 @@ fn q21(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
     use std::collections::HashMap;
     let mut r = Q2Res{revenue: Vec::new(), d_year: Vec::new(), p_brand1: Vec::new()};
 
-    // build date hash table
-    let mut d_ht = HashMap::new();
-    for (i, d_datekey) in d.datekey.iter().enumerate() {
-        d_ht.insert(d_datekey, d.year[i]);
-    }
-    // build part hash table
-    let mut p_ht = HashMap::new();
-    for (i, p_category) in p.category.iter().enumerate() {
-        if p_category == &"MFGR#12" {
-            p_ht.insert(p.partkey[i], &p.brand1[i]);
-        }
-    }
-    // build supplier hash table
-    let mut s_ht = HashMap::new();
-    for (i, s_region) in s.region.iter().enumerate() {
-        if s_region == &"AMERICA" {
-            s_ht.insert(s.suppkey[i], true);
-        }
-    }
+    // build hash tables
+    let d_ht = ht![d; datekey => year;];
+    let p_ht = ht![p; partkey => &brand1; category == "MFGR#12"];
+    let s_ht = ht![s; suppkey => true; region == "AMERICA"];
 
     // probe and aggregate
     let mut res_ht = HashMap::<(i32, &str), i64>::new();
@@ -227,25 +238,12 @@ fn q22(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
     use std::collections::HashMap;
     let mut r = Q2Res{revenue: Vec::new(), d_year: Vec::new(), p_brand1: Vec::new()};
 
-    // build date hash table
-    let mut d_ht = HashMap::new();
-    for (i, d_datekey) in d.datekey.iter().enumerate() {
-        d_ht.insert(d_datekey, d.year[i]);
-    }
-    // build part hash table
-    let mut p_ht = HashMap::new();
-    for (i, p_brand1) in p.brand1.iter().enumerate() {
-        if p_brand1.as_str() >= "MFGR#2221" && p_brand1.as_str() <= "MFGR#2228" {
-            p_ht.insert(p.partkey[i], &p.brand1[i]);
-        }
-    }
-    // build supplier hash table
-    let mut s_ht = HashMap::new();
-    for (i, s_region) in s.region.iter().enumerate() {
-        if s_region == &"ASIA" {
-            s_ht.insert(s.suppkey[i], true);
-        }
-    }
+    // build
+    let d_ht = ht![d; datekey => year;];
+    // &brand1 >= "MFGR#2221" is faster than brand1 >= "MFGR#2221".to_string()
+    // but the ht! macro doesn't support that
+    let p_ht = ht![p; partkey => &brand1; brand1 >= "MFGR#2221".to_string(), and brand1 <= "MFGR#2228".to_string()];
+    let s_ht = ht![s; suppkey => true; region == "ASIA"];
 
     // probe and aggregate
     let mut res_ht = HashMap::<(i32, &str), i64>::new();
@@ -275,25 +273,10 @@ fn q23(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
     use std::collections::HashMap;
     let mut r = Q2Res{revenue: Vec::new(), d_year: Vec::new(), p_brand1: Vec::new()};
 
-    // build date hash table
-    let mut d_ht = HashMap::new();
-    for (i, d_datekey) in d.datekey.iter().enumerate() {
-        d_ht.insert(d_datekey, d.year[i]);
-    }
-    // build part hash table
-    let mut p_ht = HashMap::new();
-    for (i, p_brand1) in p.brand1.iter().enumerate() {
-        if p_brand1.as_str() == "MFGR#2221" {
-            p_ht.insert(p.partkey[i], &p.brand1[i]);
-        }
-    }
-    // build supplier hash table
-    let mut s_ht = HashMap::new();
-    for (i, s_region) in s.region.iter().enumerate() {
-        if s_region == &"EUROPE" {
-            s_ht.insert(s.suppkey[i], true);
-        }
-    }
+    // build
+    let d_ht = ht![d; datekey => year;];
+    let p_ht = ht![p; partkey => &brand1; brand1 == "MFGR#2221"];
+    let s_ht = ht![s; suppkey => true; region == "EUROPE"];
 
     // probe and aggregate
     let mut res_ht = HashMap::<(i32, &str), i64>::new();
@@ -329,27 +312,10 @@ struct Q31Res {
 fn q31(c: &C, lo: &LO, s: &S, d: &D) -> Q31Res {
     use std::collections::HashMap;
 
-    // build date hash table
-    let mut d_ht = HashMap::new();
-    for (i, d_year) in d.year.iter().enumerate() {
-        if d_year >= &1992 && d_year <= &1997{
-            d_ht.insert(d.datekey[i], d_year);
-        }
-    }
-    // build supplier hash table
-    let mut s_ht = HashMap::new();
-    for (i, s_region) in s.region.iter().enumerate() {
-        if s_region == &"ASIA" {
-            s_ht.insert(s.suppkey[i], &s.nation[i]);
-        }
-    }
-    // build customer hash table
-    let mut c_ht = HashMap::new();
-    for (i, c_region) in c.region.iter().enumerate() {
-        if c_region == &"ASIA" {
-            c_ht.insert(c.custkey[i], &c.nation[i]);
-        }
-    }
+    // build
+    let d_ht = ht![d; datekey => year; year >= 1992, and year <= 1997];
+    let s_ht = ht![s; suppkey => &nation; region == "ASIA"];
+    let c_ht = ht![c; custkey => &nation; region == "ASIA"];
 
     // probe and aggregate
     let mut res_ht = HashMap::<(&str, &str, i32), i64>::new();
@@ -357,7 +323,7 @@ fn q31(c: &C, lo: &LO, s: &S, d: &D) -> Q31Res {
         if let Some(d_year) = d_ht.get(lo_orderdate) {
             if let Some(s_nation) = s_ht.get(&lo.suppkey[i]) {
                 if let Some(c_nation) = c_ht.get(&lo.custkey[i]) {
-                    *res_ht.entry((c_nation, s_nation, **d_year)).or_insert(0) += lo.revenue[i] as i64;
+                    *res_ht.entry((c_nation, s_nation, *d_year)).or_insert(0) += lo.revenue[i] as i64;
                 }
             }
         }
@@ -387,38 +353,38 @@ fn main() {
     println!("Takes {} seconds to load.", start.elapsed().as_millis() as f32 / 1000.0);
 
     let start = Instant::now();
-    println!("q11: {:?}", q11(&lo, &d));
+    let q11_r = q11(&lo, &d);
+    assert_eq!(q11_r.revenue, 445921715901);
     println!("q11 takes {} ms.", start.elapsed().as_millis());
 
     let start = Instant::now();
-    println!("q12: {:?}", q12(&lo, &d));
+    let q12_r = q12(&lo, &d);
+    assert_eq!(q12_r.revenue, 97884685311);
     println!("q12 takes {} ms.", start.elapsed().as_millis());
 
     let start = Instant::now();
-    println!("q13: {:?}", q13(&lo, &d));
+    let q13_r = q13(&lo, &d);
+    assert_eq!(q13_r.revenue, 27885895351);
     println!("q13 takes {} ms.", start.elapsed().as_millis());
 
     let start = Instant::now();
     let q21_r = q21(&lo, &d, &p, &s);
+    assert_eq!(q21_r.d_year.len(), 280);
     println!("q21 takes {} ms.", start.elapsed().as_millis());
-    println!("q21 row_count: {}", q21_r.d_year.len());
-    //println!("Q21 res: {:?}", q21_r);
 
     let start = Instant::now();
     let q22_r = q22(&lo, &d, &p, &s);
+    assert_eq!(q22_r.d_year.len(), 56);
     println!("q22 takes {} ms.", start.elapsed().as_millis());
-    println!("Q22 row_count: {}", q22_r.d_year.len());
-    //println!("Q22 res: {:?}", q22_r);
 
     let start = Instant::now();
     let q23_r = q23(&lo, &d, &p, &s);
+    assert_eq!(q23_r.d_year.len(), 7);
     println!("q23 takes {} ms.", start.elapsed().as_millis());
-    println!("q23 row_count: {}", q23_r.d_year.len());
-    //println!("Q22 res: {:?}", q22_r);
 
     let start = Instant::now();
     let q31_r = q31(&c, &lo, &s, &d);
     println!("q31 takes {} ms.", start.elapsed().as_millis());
     println!("q31 row_count: {}", q31_r.d_year.len());
-    println!("Q31 res: {:?}", q31_r);
+    //println!("Q31 res: {:?}", q31_r);
 }
