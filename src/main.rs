@@ -86,27 +86,27 @@ struct Q1Res {
 
 
 macro_rules! ht {
-    (@pred_expaned $tbl:expr, $idx:expr, $l:ident == $r:expr, and $($rest:tt)*) => {{
-        ht![@pred_expaned $tbl, $idx, $l == $r] && ht![@pred_expaned $tbl, $idx, $($rest)*]
-    }};
-    (@pred_expaned $tbl:expr, $idx:expr, $l:ident >= $r:expr, and $($rest:tt)*) => {{
-        ht![@pred_expaned $tbl, $idx, $l >= $r] && ht![@pred_expaned $tbl, $idx, $($rest)*]
-    }};
-    (@pred_expaned $tbl:expr, $idx:expr, $l:ident <= $r:expr, and $($rest:tt)*) => {{
-        ht![@pred_expaned $tbl, $idx, $l <= $r] && ht![@pred_expaned $tbl, $idx, $($rest)*]
-    }};
-    (@pred_expaned $tbl:expr, $idx:expr, $l:ident == $r:expr) => {{
-        $tbl.$l[$idx] == $r
-    }};
-    (@pred_expaned $tbl:expr, $idx:expr, $l:ident >= $r:expr) => {{
-        $tbl.$l[$idx] >= $r
-    }};
-    (@pred_expaned $tbl:expr, $idx:expr, $l:ident <= $r:expr) => {{
-        $tbl.$l[$idx] <= $r
-    }};
-    (@pred_expaned $tbl:expr, $idx:expr,) => {{
-        true
-    }};
+    (@pred $tbl:expr, $idx:expr, [$($res:tt)*], and $($x:tt)*) => {
+        ht!(@pred $tbl, $idx, [$($res)* &&], $($x)*)
+    };
+    (@pred $tbl:expr, $idx:expr, [$($res:tt)*], or $($x:tt)*) => {
+        ht!(@pred $tbl, $idx, [$($res)* ||], $($x)*)
+    };
+    (@pred $tbl:expr, $idx:expr, [$($res:tt)*], $l:ident == $r:expr, $($x:tt)*) => {
+        ht!(@pred $tbl, $idx, [$($res)* $tbl.$l[$idx] == $r], $($x)*)
+    };
+    (@pred $tbl:expr, $idx:expr, [$($res:tt)*], $l:ident >= $r:expr, $($x:tt)*) => {
+        ht!(@pred $tbl, $idx, [$($res)* $tbl.$l[$idx] >= $r], $($x)*)
+    };
+    (@pred $tbl:expr, $idx:expr, [$($res:tt)*], $l:ident <= $r:expr, $($x:tt)*) => {
+        ht!(@pred $tbl, $idx, [$($res)* $tbl.$l[$idx] <= $r], $($x)*)
+    };
+    (@pred $tbl:expr, $idx:expr, [$($res:tt)*], true, $($x:tt)*) => {
+        ht!(@pred $tbl, $idx, [$($res)* true], $($x)*)
+    };
+    (@pred $tbl:expr, $idx:expr, [$($res:tt)*],) => {
+        $($res)*
+    };
     (@v_expaned $tbl:expr, $idx:expr, true) => {
         true
     };
@@ -116,7 +116,7 @@ macro_rules! ht {
     ($tbl:expr; $k:ident => &$v:ident; $($pred:tt)*) => {{
         let mut t = std::collections::HashMap::new();
         for i in 0..$tbl.$k.len() {
-            if ht![@pred_expaned $tbl, i, $($pred)*] {
+            if ht![@pred $tbl, i, [], $($pred)*] {
                 t.insert($tbl.$k[i], &ht![@v_expaned $tbl, i, $v]);
             }
         }
@@ -125,7 +125,7 @@ macro_rules! ht {
     ($tbl:expr; $k:ident => $v:ident; $($pred:tt)*) => {{
         let mut t = std::collections::HashMap::new();
         for i in 0..$tbl.$k.len() {
-            if ht![@pred_expaned $tbl, i, $($pred)*] {
+            if ht![@pred $tbl, i, [], $($pred)*] {
                 t.insert($tbl.$k[i], ht![@v_expaned $tbl, i, $v]);
             }
         }
@@ -136,7 +136,7 @@ macro_rules! ht {
 // for SF = 1, revenue = 445921715901
 fn q11(lo: &LO, d: &D) -> Q1Res {
     // build
-    let ht = ht![d; datekey => true; year == 1993];
+    let ht = ht![d; datekey => true; year == 1993,];
 
     // probe
     let mut r = Q1Res{revenue: 0};
@@ -156,7 +156,7 @@ fn q11(lo: &LO, d: &D) -> Q1Res {
 // for SF = 1, revenue = 97884685311
 fn q12(lo: &LO, d: &D) -> Q1Res {
     // build
-    let ht = ht![d; datekey => true; yearmonthnum == 199401];
+    let ht = ht![d; datekey => true; yearmonthnum == 199401,];
 
     // probe
     let mut r = Q1Res{revenue: 0};
@@ -176,7 +176,7 @@ fn q12(lo: &LO, d: &D) -> Q1Res {
 // for SF = 1, revenue = 27885895351
 fn q13(lo: &LO, d: &D) -> Q1Res {
     // build
-    let ht = ht![d; datekey => true; weeknuminyear == 6, and year == 1994];
+    let ht = ht![d; datekey => true; weeknuminyear == 6, and year == 1994,];
 
     // probe
     let mut r = Q1Res{revenue: 0};
@@ -206,9 +206,9 @@ fn q21(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
     let mut r = Q2Res{revenue: Vec::new(), d_year: Vec::new(), p_brand1: Vec::new()};
 
     // build hash tables
-    let d_ht = ht![d; datekey => year;];
-    let p_ht = ht![p; partkey => &brand1; category == "MFGR#12"];
-    let s_ht = ht![s; suppkey => true; region == "AMERICA"];
+    let d_ht = ht![d; datekey => year; true,];
+    let p_ht = ht![p; partkey => &brand1; category == "MFGR#12",];
+    let s_ht = ht![s; suppkey => true; region == "AMERICA",];
 
     // probe and aggregate
     let mut res_ht = HashMap::<(i32, &str), i64>::new();
@@ -239,11 +239,11 @@ fn q22(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
     let mut r = Q2Res{revenue: Vec::new(), d_year: Vec::new(), p_brand1: Vec::new()};
 
     // build
-    let d_ht = ht![d; datekey => year;];
+    let d_ht = ht![d; datekey => year; true,];
     // &brand1 >= "MFGR#2221" is faster than brand1 >= "MFGR#2221".to_string()
     // but the ht! macro doesn't support that
-    let p_ht = ht![p; partkey => &brand1; brand1 >= "MFGR#2221".to_string(), and brand1 <= "MFGR#2228".to_string()];
-    let s_ht = ht![s; suppkey => true; region == "ASIA"];
+    let p_ht = ht![p; partkey => &brand1; brand1 >= "MFGR#2221".to_string(), and brand1 <= "MFGR#2228".to_string(),];
+    let s_ht = ht![s; suppkey => true; region == "ASIA",];
 
     // probe and aggregate
     let mut res_ht = HashMap::<(i32, &str), i64>::new();
@@ -274,9 +274,9 @@ fn q23(lo: &LO, d: &D, p: &P, s: &S) -> Q2Res {
     let mut r = Q2Res{revenue: Vec::new(), d_year: Vec::new(), p_brand1: Vec::new()};
 
     // build
-    let d_ht = ht![d; datekey => year;];
-    let p_ht = ht![p; partkey => &brand1; brand1 == "MFGR#2221"];
-    let s_ht = ht![s; suppkey => true; region == "EUROPE"];
+    let d_ht = ht![d; datekey => year; true,];
+    let p_ht = ht![p; partkey => &brand1; brand1 == "MFGR#2221",];
+    let s_ht = ht![s; suppkey => true; region == "EUROPE",];
 
     // probe and aggregate
     let mut res_ht = HashMap::<(i32, &str), i64>::new();
@@ -313,9 +313,9 @@ fn q31(c: &C, lo: &LO, s: &S, d: &D) -> Q31Res {
     use std::collections::HashMap;
 
     // build
-    let d_ht = ht![d; datekey => year; year >= 1992, and year <= 1997];
-    let s_ht = ht![s; suppkey => &nation; region == "ASIA"];
-    let c_ht = ht![c; custkey => &nation; region == "ASIA"];
+    let d_ht = ht![d; datekey => year; year >= 1992, and year <= 1997,];
+    let s_ht = ht![s; suppkey => &nation; region == "ASIA",];
+    let c_ht = ht![c; custkey => &nation; region == "ASIA",];
 
     // probe and aggregate
     let mut res_ht = HashMap::<(&str, &str, i32), i64>::new();
