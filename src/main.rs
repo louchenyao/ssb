@@ -538,37 +538,36 @@ fn main() {
 
     let start = Instant::now();
     let q31_r = q31(&c, &lo, &s, &d);
+    assert_eq!(q31_r.d_year.len(), 150);
     println!("q31 takes {} ms.", start.elapsed().as_millis());
-    println!("q31 row_count: {}", q31_r.d_year.len());
-    //println!("Q31 res: {:?}", q31_r);
 
     let start = Instant::now();
     let q32_r = q32(&c, &lo, &s, &d);
+    assert_eq!(q32_r.len(), 600);
     println!("q32 takes {} ms.", start.elapsed().as_millis());
-    println!("q32 row_count: {}", q32_r.len());
 
     let start = Instant::now();
     let q33_r = q33(&c, &lo, &s, &d);
+    assert_eq!(q33_r.len(), 24);
     println!("q33 takes {} ms.", start.elapsed().as_millis());
-    println!("q33 row_count: {}", q33_r.len());
 
     let start = Instant::now();
     let q34_r = q34(&c, &lo, &s, &d);
+    assert_eq!(q34_r.len(), 3);
     println!("q34 takes {} ms.", start.elapsed().as_millis());
-    println!("q34 row_count: {}", q34_r.len());
 
     let start = Instant::now();
     let q41_r = q41(&d, &c, &s, &p, &lo);
+    assert_eq!(q41_r.len(), 35);
     println!("q41 takes {} ms.", start.elapsed().as_millis());
-    println!("q41 row_count: {}", q41_r.len());
 
     let start = Instant::now();
     let q42_r = q42(&d, &c, &s, &p, &lo);
+    assert_eq!(q42_r.len(), 100);
     println!("q42 takes {} ms.", start.elapsed().as_millis());
-    println!("q42 row_count: {}", q42_r.len());
 
     let start = Instant::now();
     let q43_r = q43(&d, &c, &s, &p, &lo);
+    assert_eq!(q43_r.len(), 324);
     println!("q43 takes {} ms.", start.elapsed().as_millis());
-    println!("q43 row_count: {}", q43_r.len());
 }
