@@ -342,6 +342,79 @@ fn q31(c: &C, lo: &LO, s: &S, d: &D) -> Q31Res {
     r
 }
 
+// returns Vec<(c_city, s_city, d_year, revenue)>
+fn q32(c: &C, lo: &LO, s: &S, d: &D) -> Vec<(String, String, i32, i64)> {
+    let c_ht = ht![c; custkey => &city; nation == "UNITED STATES",];
+    let s_ht = ht![s; suppkey => &city; nation == "UNITED STATES",];
+    let d_ht = ht![d; datekey => year; year >= 1992, and year <= 1997,];
+
+    let mut res_ht = std::collections::HashMap::new();
+    for i in 0..lo.orderkey.len() {
+        if let Some(d_year) = d_ht.get(&lo.orderdate[i]) {
+            if let Some(c_city) = c_ht.get(&lo.custkey[i]) {
+                if let Some(s_city) = s_ht.get(&lo.suppkey[i]) {
+                    *res_ht.entry((*c_city, *s_city, *d_year)).or_insert(0) += lo.revenue[i] as i64;
+                }
+            }
+        }
+    }
+
+    let mut v: Vec<_> = res_ht.into_iter()
+                               .map(|x| ((x.0).0.to_owned(), (x.0).1.to_owned(), (x.0).2, x.1))
+                               .collect();
+    v.sort_by_key(|x| (x.2, -x.3));
+    v
+}
+
+// returns Vec<(c_city, s_city, d_year, revenue)>
+fn q33(c: &C, lo: &LO, s: &S, d: &D) -> Vec<(String, String, i32, i64)> {
+    let c_ht = ht![c; custkey => &city; city == "UNITED KI1", or city == "UNITED KI5",];
+    let s_ht = ht![s; suppkey => &city; city == "UNITED KI1", or city == "UNITED KI5",];
+    let d_ht = ht![d; datekey => year; year >= 1992, and year <= 1997,];
+
+    let mut res_ht = std::collections::HashMap::new();
+    for i in 0..lo.orderkey.len() {
+        if let Some(d_year) = d_ht.get(&lo.orderdate[i]) {
+            if let Some(c_city) = c_ht.get(&lo.custkey[i]) {
+                if let Some(s_city) = s_ht.get(&lo.suppkey[i]) {
+                    *res_ht.entry((*c_city, *s_city, *d_year)).or_insert(0) += lo.revenue[i] as i64;
+                }
+            }
+        }
+    }
+
+    let mut v: Vec<_> = res_ht.into_iter()
+                               .map(|x| ((x.0).0.to_owned(), (x.0).1.to_owned(), (x.0).2, x.1))
+                               .collect();
+    v.sort_by_key(|x| (x.2, -x.3));
+    v
+}
+
+
+// returns Vec<(c_city, s_city, d_year, revenue)>
+fn q34(c: &C, lo: &LO, s: &S, d: &D) -> Vec<(String, String, i32, i64)> {
+    let c_ht = ht![c; custkey => &city; city == "UNITED KI1", or city == "UNITED KI5",];
+    let s_ht = ht![s; suppkey => &city; city == "UNITED KI1", or city == "UNITED KI5",];
+    let d_ht = ht![d; datekey => year; yearmonth == "Dec1997",];
+
+    let mut res_ht = std::collections::HashMap::new();
+    for i in 0..lo.orderkey.len() {
+        if let Some(d_year) = d_ht.get(&lo.orderdate[i]) {
+            if let Some(c_city) = c_ht.get(&lo.custkey[i]) {
+                if let Some(s_city) = s_ht.get(&lo.suppkey[i]) {
+                    *res_ht.entry((*c_city, *s_city, *d_year)).or_insert(0) += lo.revenue[i] as i64;
+                }
+            }
+        }
+    }
+
+    let mut v: Vec<_> = res_ht.into_iter()
+                               .map(|x| ((x.0).0.to_owned(), (x.0).1.to_owned(), (x.0).2, x.1))
+                               .collect();
+    v.sort_by_key(|x| (x.2, -x.3));
+    v
+}
+
 fn main() {
     println!("Loading...");
     let start = Instant::now();
@@ -387,4 +460,19 @@ fn main() {
     println!("q31 takes {} ms.", start.elapsed().as_millis());
     println!("q31 row_count: {}", q31_r.d_year.len());
     //println!("Q31 res: {:?}", q31_r);
+
+    let start = Instant::now();
+    let q32_r = q32(&c, &lo, &s, &d);
+    println!("q32 takes {} ms.", start.elapsed().as_millis());
+    println!("q32 row_count: {}", q32_r.len());
+
+    let start = Instant::now();
+    let q33_r = q33(&c, &lo, &s, &d);
+    println!("q33 takes {} ms.", start.elapsed().as_millis());
+    println!("q33 row_count: {}", q33_r.len());
+
+    let start = Instant::now();
+    let q34_r = q34(&c, &lo, &s, &d);
+    println!("q34 takes {} ms.", start.elapsed().as_millis());
+    println!("q34 row_count: {}", q34_r.len());
 }
