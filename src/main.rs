@@ -415,6 +415,87 @@ fn q34(c: &C, lo: &LO, s: &S, d: &D) -> Vec<(String, String, i32, i64)> {
     v
 }
 
+// returns Vec<(d_year, c_nation, profit)>
+fn q41(d: &D, c: &C, s: &S, p: &P, lo: &LO) -> Vec<(i32, String, i64)> {
+    let c_ht = ht![c; custkey => &nation; region == "AMERICA",];
+    let s_ht = ht![s; suppkey => true; region == "AMERICA",];
+    let d_ht = ht![d; datekey => year; true,];
+    let p_ht = ht![p; partkey => true; mfgr == "MFGR#1", or mfgr == "MFGR#2",];
+
+    let mut res_ht = std::collections::HashMap::new();
+    for i in 0..lo.orderkey.len() {
+        if let Some(_) = p_ht.get(&lo.partkey[i]) {
+            if let Some(_) = s_ht.get(&lo.suppkey[i]) {
+                if let Some(c_nation) = c_ht.get(&lo.custkey[i]) {
+                    if let Some(d_year) = d_ht.get(&lo.orderdate[i]) {
+                        *res_ht.entry((*d_year, *c_nation)).or_insert(0) += (lo.revenue[i] - lo.supplycost[i]) as i64;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut v: Vec<_> = res_ht.into_iter()
+                               .map(|x| ((x.0).0, (x.0).1.to_owned(), x.1))
+                               .collect();
+    v.sort();
+    v
+}
+
+// returns Vec<(d_year, s_nation, p_category, profit)>
+fn q42(d: &D, c: &C, s: &S, p: &P, lo: &LO) -> Vec<(i32, String, String, i64)> {
+    let c_ht = ht![c; custkey => true; region == "AMERICA",];
+    let s_ht = ht![s; suppkey => &nation; region == "AMERICA",];
+    let d_ht = ht![d; datekey => year; year == 1997, or year == 1998,];
+    let p_ht = ht![p; partkey => &category; mfgr == "MFGR#1", or mfgr == "MFGR#2",];
+
+    let mut res_ht = std::collections::HashMap::new();
+    for i in 0..lo.orderkey.len() {
+        if let Some(p_category) = p_ht.get(&lo.partkey[i]) {
+            if let Some(d_year) = d_ht.get(&lo.orderdate[i]) {
+                if let Some(s_nation) = s_ht.get(&lo.suppkey[i]) {
+                    if let Some(_) = c_ht.get(&lo.custkey[i]) {
+                        *res_ht.entry((*d_year, *s_nation, *p_category)).or_insert(0) += (lo.revenue[i] - lo.supplycost[i]) as i64;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut v: Vec<_> = res_ht.into_iter()
+                               .map(|x| ((x.0).0, (x.0).1.to_owned(), (x.0).2.to_owned(), x.1))
+                               .collect();
+    v.sort();
+    v
+}
+
+// returns Vec<(d_year, s_city, p_brand1, profit)>
+fn q43(d: &D, c: &C, s: &S, p: &P, lo: &LO) -> Vec<(i32, String, String, i64)> {
+    let c_ht = ht![c; custkey => true; region == "AMERICA",];
+    let s_ht = ht![s; suppkey => &city; nation == "UNITED STATES",];
+    let d_ht = ht![d; datekey => year; year == 1997, or year == 1998,];
+    let p_ht = ht![p; partkey => &brand1; category == "MFGR#14",];
+
+    let mut res_ht = std::collections::HashMap::new();
+    for i in 0..lo.orderkey.len() {
+        if let Some(p_brand1) = p_ht.get(&lo.partkey[i]) {
+            if let Some(d_year) = d_ht.get(&lo.orderdate[i]) {
+                if let Some(s_city) = s_ht.get(&lo.suppkey[i]) {
+                    if let Some(_) = c_ht.get(&lo.custkey[i]) {
+                        *res_ht.entry((*d_year, *s_city, *p_brand1)).or_insert(0) += (lo.revenue[i] - lo.supplycost[i]) as i64;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut v: Vec<_> = res_ht.into_iter()
+                               .map(|x| ((x.0).0, (x.0).1.to_owned(), (x.0).2.to_owned(), x.1))
+                               .collect();
+    v.sort();
+    v
+}
+
 fn main() {
     println!("Loading...");
     let start = Instant::now();
@@ -475,4 +556,19 @@ fn main() {
     let q34_r = q34(&c, &lo, &s, &d);
     println!("q34 takes {} ms.", start.elapsed().as_millis());
     println!("q34 row_count: {}", q34_r.len());
+
+    let start = Instant::now();
+    let q41_r = q41(&d, &c, &s, &p, &lo);
+    println!("q41 takes {} ms.", start.elapsed().as_millis());
+    println!("q41 row_count: {}", q41_r.len());
+
+    let start = Instant::now();
+    let q42_r = q42(&d, &c, &s, &p, &lo);
+    println!("q42 takes {} ms.", start.elapsed().as_millis());
+    println!("q42 row_count: {}", q42_r.len());
+
+    let start = Instant::now();
+    let q43_r = q43(&d, &c, &s, &p, &lo);
+    println!("q43 takes {} ms.", start.elapsed().as_millis());
+    println!("q43 row_count: {}", q43_r.len());
 }
