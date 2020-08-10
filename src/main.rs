@@ -45,13 +45,13 @@ struct D {
     daynuminweek: Vec<i32>,
     daynuminmonth: Vec<i32>,
     daynuminyear: Vec<i32>,
-    monthnuminweek: Vec<i32>,
+    monthnuminyear: Vec<i32>,
     weeknuminyear: Vec<i32>,
     sellingseason: Vec<String>,
+    lastdayinweak: Vec<i32>,
     lastdayinmonth: Vec<i32>,
     holidayfl: Vec<i32>,
     weekdayfl: Vec<i32>,
-    daynuminyer: Vec<i32>,
 }
 
 #[derive(TBLReader)]
